@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 rand = "0.8.3"
-serenity = "0.10.4"
-tokio = { version = "1.4", features = ["macros", "rt-multi-thread"] }
+serenity = { version = "0.10.4", features = ["collector"] }
+tokio = { version = "1.4", features = ["full"] }
+futures = "0.3.13"
 
