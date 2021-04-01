@@ -94,6 +94,7 @@ fn format_list(l: &[User]) -> Option<String> {
 #[aliases("poker")]
 async fn play_poker(ctx: &Context, msg: &Message) -> CommandResult {
 
+    // Get players responses
     let tasks : Vec<_> =
         msg.mentions
         .iter()
@@ -113,7 +114,21 @@ async fn play_poker(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(str) =  format_list(&players) {
         names = str;
     }
-    msg.channel_id.say(ctx,format!("{} want(s) to play", names)).await;
+
+    if let Err(why) = msg.channel_id.say(ctx,format!("{} want(s) to play", names)).await {
+        println!("MESSAGE ERROR: {:?}", why);
+    }
+
+    if players.len() < 3 {
+        if let Err(why) = msg.channel_id
+            .say(ctx,format!(
+                    "{} players are not enough to play poker, need at least 3",
+                    players.len()
+                )).await {
+            println!("MESSAGE ERROR: {:?}", why);
+        }
+        return Ok(());
+    }
 
     Ok(())
 }

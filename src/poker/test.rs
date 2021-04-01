@@ -31,3 +31,13 @@ fn board() {
     assert_eq!(board.turn(), c4);
     assert_eq!(board.river(), c5);
 }
+
+#[test]
+fn player_ring() {
+    let players = [1, 2, 3];
+    let mut ring = PlayerRing::new(&players, 0);
+    assert_eq!(ring.next().id, 1);
+    assert_eq!(ring.next().id, 2);
+    assert_eq!(ring.next().id, 3);
+    assert_eq!(ring.next().id, 1);
+}
