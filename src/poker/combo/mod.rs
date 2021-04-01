@@ -1,5 +1,8 @@
 use super::*;
 
+#[cfg(test)]
+mod test;
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub enum CardCombo {
     HighCard(Rank, Rank, Rank, Rank, Rank),
@@ -43,13 +46,13 @@ fn find_straight_flush(cards: &[Card]) -> Option<CardCombo> {
                 flush_sorted
                 .windows(5)
                 .map(|s|
-                    ((s[0],
+                    (s[0],
                     s
                     .windows(2)
                     .map(|is| (is[0], is[1]))
                     .map(|(a, b)| a.is_next(b))
                     .all(|i| i)
-                    )))
+                    ))
                 .find(|(r, b)| *b);
             res.map(|(r,_)| CC::StraightFlush(r))
     } else {
@@ -136,13 +139,13 @@ fn find_straight(cards: &[Card]) -> Option<CardCombo> {
         sorted_cards
         .windows(5)
         .map(|s|
-            ((s[0],
+            (s[0],
             s
             .windows(2)
             .map(|is| (is[0], is[1]))
             .map(|(a, b)| a.is_next(b))
             .all(|i| i)
-            )))
+            ))
         .find(|(r, b)| *b);
     res.map(|(r, _)| CC::Straight(r))
 }
@@ -242,200 +245,15 @@ fn find_high_card(cards: &[Card]) -> CardCombo {
 }
 
 pub fn find_best_card(cards: &[Card]) -> CardCombo {
-    if let Some(cc) = find_royal_flush(cards) { return cc;
-    }
-    if let Some(cc) = find_straight_flush(cards) {
-        return cc;
-    }
-    if let Some(cc) = find_four_of_a_kind(cards) {
-        return cc;
-    }
-    if let Some(cc) = find_full_house(cards) {
-        return cc;
-    }
-    if let Some(cc) = find_flush(cards) {
-        return cc;
-    }
-    if let Some(cc) = find_straight(cards) {
-        return cc;
-    }
-    if let Some(cc) = find_three_of_a_kind(cards) {
-        return cc;
-    }
-    if let Some(cc) = find_two_pairs(cards) {
-        return cc;
-    }
-    if let Some(cc) = find_pair(cards) {
-        return cc;
-    }
-    find_high_card(cards)
-
+    find_royal_flush(cards)
+        .or_else(|| find_straight_flush(cards))
+        .or_else(|| find_four_of_a_kind(cards))
+        .or_else(|| find_full_house(cards))
+        .or_else(|| find_flush(cards))
+        .or_else(|| find_straight(cards))
+        .or_else(|| find_three_of_a_kind(cards))
+        .or_else(|| find_two_pairs(cards))
+        .or_else(|| find_pair(cards))
+        .unwrap_or_else(|| find_high_card(cards))
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    type R = Rank;
-    type S = Suit;
-
-    #[test]
-    fn orderinng() {
-        assert!(CC::RoyalFlush > CC::StraightFlush(R::Six));
-        assert!(CC::StraightFlush(R::Jack) > CC::StraightFlush(R::Six));
-        assert!(
-            CC::Flush(R::Jack, R::Seven, R::Four, R::Three, R::Two)
-            >
-            CC::Flush(R::Jack, R::Six, R::Five, R::Four, R::Three)
-        );
-
-        assert!(CC::Pair(R::Seven, R::Six) < CC::Pair(R::Eight, R::Four));
-        assert!(CC::Pair(R::Seven, R::Four) < CC::Pair(R::Seven, R::Six));
-        assert!(CC::Pair(R::Seven, R::Four) == CC::Pair(R::Seven, R::Four));
-    }
-
-    #[cfg(test)]
-    mod combos {
-        use super::*;
-        #[test]
-        fn royal_flush() {
-            let cards = [
-                Card(S::Clubs, R::Four),
-                Card(S::Hearts, R::Jack),
-                Card(S::Hearts, R::King),
-                Card(S::Spades, R::Three),
-                Card(S::Hearts, R::Ace),
-                Card(S::Hearts, R::Queen),
-                Card(S::Hearts, R::Ten),
-            ];
-            assert_eq!(Some(CC::RoyalFlush), find_royal_flush(&cards));
-        }
-
-        #[test]
-        fn straight_flush() {
-            let cards = [
-                Card(S::Hearts, R::Eight),
-                Card(S::Hearts, R::Jack),
-                Card(S::Hearts, R::Nine),
-                Card(S::Spades, R::Three),
-                Card(S::Spades, R::Ace),
-                Card(S::Hearts, R::Queen),
-                Card(S::Hearts, R::Ten),
-            ];
-            assert_eq!(Some(CC::StraightFlush(R::Queen)), find_straight_flush(&cards));
-        }
-
-        #[test]
-        fn four_of_a_kind() {
-            let cards = [
-                Card(S::Clubs, R::Eight),
-                Card(S::Hearts, R::Eight),
-                Card(S::Clubs, R::Nine),
-                Card(S::Diamonds, R::Eight),
-                Card(S::Clubs, R::Four),
-                Card(S::Diamonds, R::Nine),
-                Card(S::Spades, R::Eight),
-            ];
-            assert_eq!(Some(CC::FourOfAKind(R::Eight, R::Nine)), find_four_of_a_kind(&cards))
-        }
-
-        #[test]
-        fn full_house() {
-            let cards = [
-                Card(S::Clubs, R::Eight),
-                Card(S::Hearts, R::Eight),
-                Card(S::Clubs, R::Nine),
-                Card(S::Diamonds, R::Eight),
-                Card(S::Clubs, R::Four),
-                Card(S::Diamonds, R::Nine),
-                Card(S::Hearts, R::Seven),
-            ];
-            assert_eq!(Some(CC::FullHouse(R::Eight)), find_full_house(&cards));
-        }
-
-        #[test]
-        fn flush() {
-            let cards = [
-                Card(S::Clubs, R::Eight),
-                Card(S::Hearts, R::Three),
-                Card(S::Clubs, R::Nine),
-                Card(S::Diamonds, R::Two),
-                Card(S::Clubs, R::Four),
-                Card(S::Clubs, R::Six),
-                Card(S::Clubs, R::Seven),
-            ];
-            assert_eq!(Some(CC::Flush(R::Nine, R::Eight, R::Seven, R::Six, R::Four)), find_flush(&cards));
-        }
-
-        #[test]
-        fn straight() {
-            let cards = [
-                Card(S::Clubs, R::Eight),
-                Card(S::Hearts, R::Nine),
-                Card(S::Spades, R::Seven),
-                Card(S::Diamonds, R::Nine),
-                Card(S::Hearts, R::Five),
-                Card(S::Diamonds, R::Six),
-                Card(S::Hearts, R::Three),
-            ];
-            assert_eq!(Some(CC::Straight(R::Nine)), find_straight(&cards));
-        }
-
-        #[test]
-        fn three_of_a_kind() {
-            let cards = [
-                Card(S::Clubs, R::Eight),
-                Card(S::Hearts, R::Eight),
-                Card(S::Spades, R::Eight),
-                Card(S::Diamonds, R::Nine),
-                Card(S::Hearts, R::Four),
-                Card(S::Diamonds, R::Six),
-                Card(S::Hearts, R::Three),
-            ];
-            assert_eq!(Some(CC::ThreeOfAKind(R::Eight, R::Nine)), find_three_of_a_kind(&cards));
-
-        }
-
-        #[test]
-        fn two_pairs() {
-            let cards = [
-                Card(S::Clubs, R::Eight),
-                Card(S::Hearts, R::Three),
-                Card(S::Spades, R::Nine),
-                Card(S::Diamonds, R::Nine),
-                Card(S::Hearts, R::Four),
-                Card(S::Diamonds, R::Six),
-                Card(S::Hearts, R::Eight),
-            ];
-            assert_eq!(Some(CC::TwoPairs(R::Nine, R::Eight, R::Six)), find_two_pairs(&cards));
-        }
-
-        #[test]
-        fn pair() {
-            let cards = [
-                Card(S::Clubs, R::Eight),
-                Card(S::Hearts, R::Three),
-                Card(S::Spades, R::Nine),
-                Card(S::Diamonds, R::Two),
-                Card(S::Hearts, R::Four),
-                Card(S::Diamonds, R::Six),
-                Card(S::Hearts, R::Eight),
-            ];
-            assert_eq!(Some(CC::Pair(R::Eight, R::Nine)), find_pair(&cards));
-        }
-
-        #[test]
-        fn highest_card() {
-            let cards = [
-                Card(S::Clubs, R::Eight),
-                Card(S::Hearts, R::Three),
-                Card(S::Spades, R::Nine),
-                Card(S::Diamonds, R::Two),
-                Card(S::Hearts, R::Four),
-                Card(S::Diamonds, R::Six),
-                Card(S::Clubs, R::Seven),
-            ];
-            assert_eq!(CC::HighCard(R::Nine, R::Eight, R::Seven, R::Six, R::Four), find_high_card(&cards)) 
-        }
-    }
-}
